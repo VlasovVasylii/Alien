@@ -15,3 +15,9 @@ class Settings:
         self.bullet_height = 7
         self.bullet_color = (60, 60, 60)
         self.bullet_allowed = 3
+
+        # Настройки прошельцев
+        self.alien_speed = 0.1
+        self.fleet_drop_speed = 10
+        # fleet_direction = 1 обозначает движение вправо; а -1 - влево.
+        self.fleet_direction = 1
