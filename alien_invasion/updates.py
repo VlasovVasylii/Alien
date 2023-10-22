@@ -17,7 +17,7 @@ class Update:
             if bullet.rect.bottom <= 0:
                 self.ai_game.bullets.remove(bullet)
 
-        self.ai_game.check_bullet_alien_collisions()
+        self.ai_game.collisions.check_bullet_alien_collisions()
 
     def update_aliens(self):
         """
@@ -29,10 +29,10 @@ class Update:
 
         # Проверка коллизий "пришелец — корабль".
         if pygame.sprite.spritecollideany(self.ai_game.ship, self.ai_game.aliens):
-            self.ai_game.ship_hit()
+            self.ai_game.collisions.ship_hit()
 
         # Проверить, добрались ли пришельцы до нижнего края экрана.
-        self.ai_game.check_aliens_bottom()
+        self.ai_game.collisions.check_aliens_bottom()
 
     def update_screen(self):
         """Обновляет изображения на экране и отображает новый экран."""

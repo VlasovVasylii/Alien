@@ -3,7 +3,7 @@ from settings import Settings
 from aliens_fleet import AliensFleet
 from models.ship import Ship
 from models.button import PlayButton
-from time import sleep
+from damage_mechanics import CollisionMechanics
 from game_status import GameStatus
 from choosing_level import ChooseLevel
 from scoreboard import ScoreBoard
@@ -29,6 +29,9 @@ class AlienInvasion:
 
         # Создание интерфейса обновления игры.
         self.updator = Update(self)
+
+        # Создание интерфейса обработки коллизий.
+        self.collisions = CollisionMechanics(self)
 
         # Создание экземпляра для хранения игровой статистики и панели результатов,
         # загрузка результатов прошлых игр.
@@ -58,50 +61,6 @@ class AlienInvasion:
         # Увеличение уровня.
         self.status.level += 1
         self.score_board.prep_level()
-
-    def check_bullet_alien_collisions(self):
-        """Обработка коллизий снарядов с пришельцами."""
-        # Удаление снарядов и пришельцев, участвующих в коллизиях.
-        collisions = pygame.sprite.groupcollide(self.bullets, self.aliens, True, True)
-
-        if collisions:
-            for aliens in collisions.values():
-                self.status.score += self.settings.alien_points * len(aliens)
-            self.score_board.prep_score()
-            self.score_board.check_high_score()
-
-        if not self.aliens:
-            self.start_new_level()
-
-    def check_aliens_bottom(self):
-        """Проверяет, добрались ли пришельцы до нижнего края экрана."""
-        screen_rect = self.screen.get_rect()
-        for alien in self.aliens.sprites():
-            if alien.rect.bottom >= screen_rect.bottom:
-                # Происходит то же, что при столкновении с кораблем.
-                self.ship_hit()
-                break
-
-    def ship_hit(self):
-        """Обрабатывает столкновение корабля с пришельцем."""
-        if self.status.ships_left > 1:
-            # Уменьшение ships_left и обновление панели счёта.
-            self.status.ships_left -= 1
-            self.score_board.prep_ships()
-
-            # Очистка списка пришельцев и снарядов.
-            self.aliens.empty()
-            self.bullets.empty()
-
-            # Создание нового флота и размещение корабля в центре.
-            self.aliens_fleet.create_fleet()
-            self.ship.center_ship()
-
-            # Пауза.
-            sleep(0.5)
-        else:
-            self.status.game_active = False
-            pygame.mouse.set_visible(True)
 
     def run_game(self):
         """Запуск игрового цикла игры."""
