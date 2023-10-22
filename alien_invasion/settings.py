@@ -18,7 +18,7 @@ class Settings:
         self.bullet_allowed = 3
 
         # Настройки пришельцев
-        self.fleet_drop_speed = 15
+        self.fleet_drop_speed = 10
 
         # Темп ускорения игры
         self.speedup_scale = 1.1
@@ -44,3 +44,12 @@ class Settings:
         self.ship_speed_factor *= self.speedup_scale
         self.bullet_speed_factor *= self.speedup_scale
         self.alien_speed_factor *= self.speedup_scale
+
+    def change_level(self, level):  # Установка уровня сложности(0 - нормальный,
+        # 1 - сложный).
+        if level == 0:
+            self.ship_limit = 3
+            self.speedup_scale = 1.1
+        else:
+            self.ship_limit = 1
+            self.speedup_scale = 1.25

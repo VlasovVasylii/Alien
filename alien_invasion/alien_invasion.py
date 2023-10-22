@@ -6,7 +6,8 @@ from bullet import Bullet
 from alien import Alien
 from time import sleep
 from game_status import GameStatus
-from button import Button
+from button import PlayButton
+from choosing_level import ChooseLevel
 
 
 class AlienInvasion:
@@ -32,7 +33,10 @@ class AlienInvasion:
         self._create_fleet()
 
         # Создание кнопки Play.
-        self.play_button = Button(self, "Play")
+        self.play_button = PlayButton(self, "Play")
+
+        # Создание выбора настроек сложности.
+        self.choose_levels = ChooseLevel(self)
 
     def _check_events(self):
         """Обрабатывает нажатия клавиш и события мыши."""
@@ -45,7 +49,10 @@ class AlienInvasion:
                 self._check_keyup_events(event)
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_pos = pygame.mouse.get_pos()
-                self._check_play_button(mouse_pos)
+                if not self.status.choosing_active:
+                    self._check_play_button(mouse_pos)
+                else:
+                    self._choosing_level(mouse_pos)
 
     def _check_keydown_events(self, event):
         """Реагирует на нажатие клавиш."""
@@ -57,8 +64,6 @@ class AlienInvasion:
             sys.exit()
         elif event.key == pygame.K_SPACE:
             self._fire_bullet()
-        elif event.key == pygame.K_p:
-            self.start_game()
 
     def _check_keyup_events(self, event):
         """Реагирует на опускание клавиш."""
@@ -70,27 +75,38 @@ class AlienInvasion:
     def _check_play_button(self, mouse_pos):
         """Запускает новую игру при нажатии кнопки Play."""
         button_clicked = self.play_button.rect.collidepoint(mouse_pos)
-        if button_clicked:
-            # Сброс игровых настроек.
-            self.settings.initialize_dynamic_settings()
-            self.start_game()
-            # Указатель мыши скрывается.
-            pygame.mouse.set_visible(False)
+        if button_clicked and not self.status.game_active:
+            # Запускает процесс выбора уровня сложности.
+            self.status.choosing_active = True
+
+    def _choosing_level(self, mouse_pos):
+        """Создаёт возможность выбора уровня сложности."""
+        if not self.status.game_active:
+            for ind, button in enumerate(self.choose_levels.levels):
+                button_clicked = button.rect.collidepoint(mouse_pos)
+                if button_clicked:
+                    # Сброс игровых настроек.
+                    self.settings.initialize_dynamic_settings()
+                    self.settings.change_level(ind)
+                    self.start_game()
 
     def start_game(self):
-        """Запускает новую игру при нажатии кнопки Play."""
-        if not self.status.game_active:
-            # Сброс игровой статистики.
-            self.status.reset_status()
-            self.status.game_active = True
+        """Запускает новую игру после выбора уровня сложности."""
+        # Сброс игровой статистики.
+        self.status.reset_status()
+        self.status.game_active = True
+        self.status.choosing_active = False
 
-            # Очистка списка пришельцев и снарядов.
-            self.aliens.empty()
-            self.bullets.empty()
+        # Очистка списка пришельцев и снарядов.
+        self.aliens.empty()
+        self.bullets.empty()
 
-            # Создание нового флота и размещение корабля в центре.
-            self._create_fleet()
-            self.ship.center_ship()
+        # Создание нового флота и размещение корабля в центре.
+        self._create_fleet()
+        self.ship.center_ship()
+
+        # Указатель мыши скрывается.
+        pygame.mouse.set_visible(False)
 
     def _fire_bullet(self):
         """Создание нового снаряда и включение его в группу bullets."""
@@ -217,9 +233,14 @@ class AlienInvasion:
             bullet.draw_bullet()
         self.aliens.draw(self.screen)
 
-        # Кнопка Play отображается в том случае, если игра неактивна.
+        # Если игра неактивна:
         if not self.status.game_active:
-            self.play_button.draw_button()
+            if not self.status.choosing_active:
+                self.play_button.draw_button()
+            else:  # Кнопки выбора уровня сложности отображаются в том случае,
+                # если игра в процессе выбора уровня сложности.
+                self.choose_levels.draw_buttons()
+                self.choose_levels.draw_title()
 
         pygame.display.flip()
 

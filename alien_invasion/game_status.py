@@ -7,6 +7,7 @@ class GameStatus:
 
         # Игра Alien Invasion запускается в неактивном состоянии.
         self.game_active = False
+        self.choosing_active = False
 
         # Инициализирует статистику, изменяющуюся в ходе игры.
         self.ships_left = self.settings.ship_limit
