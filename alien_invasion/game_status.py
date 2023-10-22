@@ -33,3 +33,14 @@ class GameStatus:
         if os.stat("files/data.txt").st_size != 0:
             with open("files/data.txt", "r") as file:
                 self.high_score = int(file.readlines()[0])
+
+    def save_results(self):
+        """Сохраняет максимальный рекорд."""
+        if os.stat("files/data.txt").st_size != 0:
+            with open("files/data.txt", "r") as file:
+                data = int(file.readlines()[0])
+        else:
+            data = 0
+        new_data = self.high_score
+        with open("files/data.txt", "w") as file:
+            file.write(str(new_data if new_data > data else data))

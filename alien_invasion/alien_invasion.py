@@ -1,15 +1,13 @@
-import sys
-import os
 import pygame
 from settings import Settings
 from models.alien import Alien
 from models.ship import Ship
-from models.bullet import Bullet
 from models.button import PlayButton
 from time import sleep
 from game_status import GameStatus
 from choosing_level import ChooseLevel
 from scoreboard import ScoreBoard
+from checking_events import CheckEvents
 
 
 class AlienInvasion:
@@ -25,6 +23,9 @@ class AlienInvasion:
         )
         pygame.display.set_caption("Alien Invasion")
 
+        # Создание обработчика событий.
+        self.checker_events = CheckEvents(self)
+
         # Создание экземпляра для хранения игровой статистики и панели результатов,
         # загрузка результатов прошлых игр.
         self.status = GameStatus(self)
@@ -34,105 +35,13 @@ class AlienInvasion:
         self.bullets = pygame.sprite.Group()
         self.aliens = pygame.sprite.Group()
 
-        self._create_fleet()
+        self.create_fleet()
 
         # Создание кнопки Play.
         self.play_button = PlayButton(self, "Play")
 
         # Создание выбора настроек сложности.
         self.choose_levels = ChooseLevel(self)
-
-    def save_results(self):
-        """Сохраняет максимальный рекорд."""
-        if os.stat("files/data.txt").st_size != 0:
-            with open("files/data.txt", "r") as file:
-                data = int(file.readlines()[0])
-        else:
-            data = 0
-        new_data = self.status.high_score
-        with open("files/data.txt", "w") as file:
-            file.write(str(new_data if new_data > data else data))
-
-    def _check_events(self):
-        """Обрабатывает нажатия клавиш и события мыши."""
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                self.save_results()
-                sys.exit()
-            elif event.type == pygame.KEYDOWN:
-                self._check_keydown_events(event)
-            elif event.type == pygame.KEYUP:
-                self._check_keyup_events(event)
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                mouse_pos = pygame.mouse.get_pos()
-                if not self.status.choosing_active:
-                    self._check_play_button(mouse_pos)
-                else:
-                    self._choosing_level(mouse_pos)
-
-    def _check_keydown_events(self, event):
-        """Реагирует на нажатие клавиш."""
-        if event.key == pygame.K_RIGHT:
-            self.ship.moving_right = True
-        elif event.key == pygame.K_LEFT:
-            self.ship.moving_left = True
-        elif event.key == pygame.K_q:
-            self.save_results()
-            sys.exit()
-        elif event.key == pygame.K_SPACE:
-            self._fire_bullet()
-
-    def _check_keyup_events(self, event):
-        """Реагирует на опускание клавиш."""
-        if event.key == pygame.K_RIGHT:
-            self.ship.moving_right = False
-        elif event.key == pygame.K_LEFT:
-            self.ship.moving_left = False
-
-    def _check_play_button(self, mouse_pos):
-        """Запускает новую игру при нажатии кнопки Play."""
-        button_clicked = self.play_button.rect.collidepoint(mouse_pos)
-        if button_clicked and not self.status.game_active:
-            # Запускает процесс выбора уровня сложности.
-            self.status.choosing_active = True
-
-    def _choosing_level(self, mouse_pos):
-        """Создаёт возможность выбора уровня сложности."""
-        if not self.status.game_active:
-            for ind, button in enumerate(self.choose_levels.levels):
-                button_clicked = button.rect.collidepoint(mouse_pos)
-                if button_clicked:
-                    # Сброс игровых настроек.
-                    self.settings.initialize_dynamic_settings()
-                    self.settings.change_level(ind)
-                    self.start_game()
-
-    def start_game(self):
-        """Запускает новую игру после выбора уровня сложности."""
-        # Сброс игровой статистики.
-        self.status.reset_status()
-        self.status.game_active = True
-        self.status.choosing_active = False
-        self.score_board.prep_score()
-        self.score_board.prep_ships()
-
-        # Очистка списка пришельцев и снарядов.
-        self.aliens.empty()
-        self.bullets.empty()
-
-        # Создание нового флота и размещение корабля в центре.
-        self._create_fleet()
-        self.ship.center_ship()
-
-        # Указатель мыши скрывается.
-        pygame.mouse.set_visible(False)
-
-    def _fire_bullet(self):
-        """Создание нового снаряда и включение его в группу bullets."""
-        if self.status.game_active:
-            if len(self.bullets) < self.settings.bullet_allowed:
-                new_bullet = Bullet(self)
-                self.bullets.add(new_bullet)
 
     def _create_alien(self, alien_number, row_number):
         """Создание пришельца и размещение его в ряду"""
@@ -143,7 +52,7 @@ class AlienInvasion:
         alien.rect.y = alien.rect.height + 2 * alien_height * row_number + alien_height
         self.aliens.add(alien)
 
-    def _create_fleet(self):
+    def create_fleet(self):
         """Создание флота вторжения."""
         # Создание пришельца и вычисление количества пришельцев в ряду
         # Интервал между соседними пришельцами равен ширине пришельца.
@@ -183,6 +92,16 @@ class AlienInvasion:
             alien.rect.y += self.settings.fleet_drop_speed
         self.settings.fleet_direction *= -1
 
+    def start_new_level(self):
+        """Уничтожение существующих снарядов и создание нового флота."""
+        self.bullets.empty()
+        self.create_fleet()
+        self.settings.increase_speed()
+
+        # Увеличение уровня.
+        self.status.level += 1
+        self.score_board.prep_level()
+
     def _check_bullet_alien_collisions(self):
         """Обработка коллизий снарядов с пришельцами."""
         # Удаление снарядов и пришельцев, участвующих в коллизиях.
@@ -195,14 +114,7 @@ class AlienInvasion:
             self.score_board.check_high_score()
 
         if not self.aliens:
-            # Уничтожение существующих снарядов и создание нового флота.
-            self.bullets.empty()
-            self._create_fleet()
-            self.settings.increase_speed()
-
-            # Увеличение уровня.
-            self.status.level += 1
-            self.score_board.prep_level()
+            self.start_new_level()
 
     def _check_aliens_bottom(self):
         """Проверяет, добрались ли пришельцы до нижнего края экрана."""
@@ -225,7 +137,7 @@ class AlienInvasion:
             self.bullets.empty()
 
             # Создание нового флота и размещение корабля в центре.
-            self._create_fleet()
+            self.create_fleet()
             self.ship.center_ship()
 
             # Пауза.
@@ -287,7 +199,7 @@ class AlienInvasion:
         """Запуск игрового цикла игры."""
         while True:
             # отслеживание событий клавиатуры и мышки
-            self._check_events()
+            self.checker_events.check_events()
 
             if self.status.game_active:
                 self.ship.update()

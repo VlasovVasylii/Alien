@@ -26,7 +26,7 @@ class Settings:
         self.score_scale = 1.5
 
         # Инициализирует настройки, изменяющиеся в ходе игры.
-        self.ship_speed_factor = 0.4
+        self.ship_speed_factor = 0.3
         self.bullet_speed_factor = 3
         self.alien_speed_factor = 0.1
 
