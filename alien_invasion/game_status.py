@@ -5,8 +5,12 @@ class GameStatus:
         """Инициализирует статистику."""
         self.settings = ai_game.settings
 
-        # Игра Alien Invasion запускается в активном состоянии.
-        self.game_active = True
+        # Игра Alien Invasion запускается в неактивном состоянии.
+        self.game_active = False
 
-        """Инициализирует статистику, изменяющуюся в ходе игры."""
+        # Инициализирует статистику, изменяющуюся в ходе игры.
+        self.ships_left = self.settings.ship_limit
+
+    def reset_status(self):
+        """Сбрасывает количество жизней корабля."""
         self.ships_left = self.settings.ship_limit
