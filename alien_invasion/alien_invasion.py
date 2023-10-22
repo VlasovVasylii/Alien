@@ -8,6 +8,7 @@ from game_status import GameStatus
 from choosing_level import ChooseLevel
 from scoreboard import ScoreBoard
 from checking_events import CheckEvents
+from updates import Update
 
 
 class AlienInvasion:
@@ -25,6 +26,9 @@ class AlienInvasion:
 
         # Создание обработчика событий.
         self.checker_events = CheckEvents(self)
+
+        # Создание интерфейса обновления игры.
+        self.updator = Update(self)
 
         # Создание экземпляра для хранения игровой статистики и панели результатов,
         # загрузка результатов прошлых игр.
@@ -55,7 +59,7 @@ class AlienInvasion:
         self.status.level += 1
         self.score_board.prep_level()
 
-    def _check_bullet_alien_collisions(self):
+    def check_bullet_alien_collisions(self):
         """Обработка коллизий снарядов с пришельцами."""
         # Удаление снарядов и пришельцев, участвующих в коллизиях.
         collisions = pygame.sprite.groupcollide(self.bullets, self.aliens, True, True)
@@ -69,16 +73,16 @@ class AlienInvasion:
         if not self.aliens:
             self.start_new_level()
 
-    def _check_aliens_bottom(self):
+    def check_aliens_bottom(self):
         """Проверяет, добрались ли пришельцы до нижнего края экрана."""
         screen_rect = self.screen.get_rect()
         for alien in self.aliens.sprites():
             if alien.rect.bottom >= screen_rect.bottom:
                 # Происходит то же, что при столкновении с кораблем.
-                self._ship_hit()
+                self.ship_hit()
                 break
 
-    def _ship_hit(self):
+    def ship_hit(self):
         """Обрабатывает столкновение корабля с пришельцем."""
         if self.status.ships_left > 1:
             # Уменьшение ships_left и обновление панели счёта.
@@ -99,55 +103,6 @@ class AlienInvasion:
             self.status.game_active = False
             pygame.mouse.set_visible(True)
 
-    def _update_bullets(self):
-        """Обновляет позиции снарядов и уничтожает старые снаряды."""
-        # Обновление позиций снарядов.
-        self.bullets.update()
-
-        # Удаление снарядов, вышедших за край экрана.
-        for bullet in self.bullets.copy():
-            if bullet.rect.bottom <= 0:
-                self.bullets.remove(bullet)
-
-        self._check_bullet_alien_collisions()
-
-    def _update_aliens(self):
-        """
-        Проверяет, достиг ли флот края экрана,
-        с последующим обновлением позиций всех пришельцев во флоте.
-        """
-        self.aliens_fleet.check_fleet_edges()
-        self.aliens.update()
-
-        # Проверка коллизий "пришелец — корабль".
-        if pygame.sprite.spritecollideany(self.ship, self.aliens):
-            self._ship_hit()
-
-        # Проверить, добрались ли пришельцы до нижнего края экрана.
-        self._check_aliens_bottom()
-
-    def _update_screen(self):
-        """Обновляет изображения на экране и отображает новый экран."""
-        self.screen.fill(self.settings.bg_color)
-        self.ship.blitme()
-        for bullet in self.bullets.sprites():
-            bullet.draw_bullet()
-        self.aliens.draw(self.screen)
-
-        # Вывод информации о счёте.
-        self.score_board.show_score()
-
-        # Если игра неактивна:
-        if not self.status.game_active:
-            if not self.status.choosing_active:
-                self.play_button.draw_button()
-            else:  # Кнопки выбора уровня сложности отображаются в том случае,
-                # если игра в процессе выбора уровня сложности.
-                self.choose_levels.draw_buttons()
-                self.choose_levels.draw_title()
-
-        pygame.display.flip()
-
     def run_game(self):
         """Запуск игрового цикла игры."""
         while True:
@@ -156,10 +111,10 @@ class AlienInvasion:
 
             if self.status.game_active:
                 self.ship.update()
-                self._update_bullets()
-                self._update_aliens()
+                self.updator.update_bullets()
+                self.updator.update_aliens()
 
-            self._update_screen()
+            self.updator.update_screen()
 
 
 if __name__ == "__main__":
