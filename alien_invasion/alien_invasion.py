@@ -74,9 +74,3 @@ class AlienInvasion:
                 self.updator.update_aliens()
 
             self.updator.update_screen()
-
-
-if __name__ == "__main__":
-    # Создание экземпляра и запуск игры
-    game = AlienInvasion()
-    game.run_game()
