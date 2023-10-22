@@ -1,4 +1,4 @@
-from button import ChooseButton
+from models.button import ChooseButton
 
 
 class ChooseLevel:

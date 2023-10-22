@@ -1,13 +1,15 @@
 import sys
+import os
 import pygame
 from settings import Settings
-from ship import Ship
-from bullet import Bullet
-from alien import Alien
+from models.alien import Alien
+from models.ship import Ship
+from models.bullet import Bullet
+from models.button import PlayButton
 from time import sleep
 from game_status import GameStatus
-from button import PlayButton
 from choosing_level import ChooseLevel
+from scoreboard import ScoreBoard
 
 
 class AlienInvasion:
@@ -23,8 +25,10 @@ class AlienInvasion:
         )
         pygame.display.set_caption("Alien Invasion")
 
-        # Создание экземпляра для хранения игровой статистики.
+        # Создание экземпляра для хранения игровой статистики и панели результатов,
+        # загрузка результатов прошлых игр.
         self.status = GameStatus(self)
+        self.score_board = ScoreBoard(self)
 
         self.ship = Ship(self)
         self.bullets = pygame.sprite.Group()
@@ -38,10 +42,22 @@ class AlienInvasion:
         # Создание выбора настроек сложности.
         self.choose_levels = ChooseLevel(self)
 
+    def save_results(self):
+        """Сохраняет максимальный рекорд."""
+        if os.stat("files/data.txt").st_size != 0:
+            with open("files/data.txt", "r") as file:
+                data = int(file.readlines()[0])
+        else:
+            data = 0
+        new_data = self.status.high_score
+        with open("files/data.txt", "w") as file:
+            file.write(str(new_data if new_data > data else data))
+
     def _check_events(self):
         """Обрабатывает нажатия клавиш и события мыши."""
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                self.save_results()
                 sys.exit()
             elif event.type == pygame.KEYDOWN:
                 self._check_keydown_events(event)
@@ -61,6 +77,7 @@ class AlienInvasion:
         elif event.key == pygame.K_LEFT:
             self.ship.moving_left = True
         elif event.key == pygame.K_q:
+            self.save_results()
             sys.exit()
         elif event.key == pygame.K_SPACE:
             self._fire_bullet()
@@ -96,6 +113,8 @@ class AlienInvasion:
         self.status.reset_status()
         self.status.game_active = True
         self.status.choosing_active = False
+        self.score_board.prep_score()
+        self.score_board.prep_ships()
 
         # Очистка списка пришельцев и снарядов.
         self.aliens.empty()
@@ -121,7 +140,7 @@ class AlienInvasion:
         alien_width, alien_height = alien.rect.size
         alien.x = alien_width + 2 * alien_width * alien_number
         alien.rect.x = alien.x
-        alien.rect.y = alien.rect.height + 2 * alien_height * row_number
+        alien.rect.y = alien.rect.height + 2 * alien_height * row_number + alien_height
         self.aliens.add(alien)
 
     def _create_fleet(self):
@@ -146,11 +165,17 @@ class AlienInvasion:
                 self._create_alien(alien_number, row_number)
 
     def _check_fleet_edges(self):
-        """Реагирует на достижение пришельцем края экрана."""
+        """Реагирует на достижение пришельцем края экрана или его коллизии с
+        элементами scoreboard."""
         for alien in self.aliens.sprites():
             if alien.check_edges():
                 self.change_fleet_direction()
-                break
+                return
+        for sprite in self.aliens.sprites():
+            if self.score_board.level_rect.colliderect(sprite.rect)\
+                    or self.score_board.score_rect.colliderect(sprite.rect):
+                self.change_fleet_direction()
+                return
 
     def change_fleet_direction(self):
         """Опускает весь флот и меняет направление флота."""
@@ -163,11 +188,21 @@ class AlienInvasion:
         # Удаление снарядов и пришельцев, участвующих в коллизиях.
         collisions = pygame.sprite.groupcollide(self.bullets, self.aliens, True, True)
 
+        if collisions:
+            for aliens in collisions.values():
+                self.status.score += self.settings.alien_points * len(aliens)
+            self.score_board.prep_score()
+            self.score_board.check_high_score()
+
         if not self.aliens:
             # Уничтожение существующих снарядов и создание нового флота.
             self.bullets.empty()
             self._create_fleet()
             self.settings.increase_speed()
+
+            # Увеличение уровня.
+            self.status.level += 1
+            self.score_board.prep_level()
 
     def _check_aliens_bottom(self):
         """Проверяет, добрались ли пришельцы до нижнего края экрана."""
@@ -181,8 +216,9 @@ class AlienInvasion:
     def _ship_hit(self):
         """Обрабатывает столкновение корабля с пришельцем."""
         if self.status.ships_left > 1:
-            # Уменьшение ships_left.
+            # Уменьшение ships_left и обновление панели счёта.
             self.status.ships_left -= 1
+            self.score_board.prep_ships()
 
             # Очистка списка пришельцев и снарядов.
             self.aliens.empty()
@@ -232,6 +268,9 @@ class AlienInvasion:
         for bullet in self.bullets.sprites():
             bullet.draw_bullet()
         self.aliens.draw(self.screen)
+
+        # Вывод информации о счёте.
+        self.score_board.show_score()
 
         # Если игра неактивна:
         if not self.status.game_active:
