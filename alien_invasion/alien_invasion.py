@@ -71,6 +71,8 @@ class AlienInvasion:
         """Запускает новую игру при нажатии кнопки Play."""
         button_clicked = self.play_button.rect.collidepoint(mouse_pos)
         if button_clicked:
+            # Сброс игровых настроек.
+            self.settings.initialize_dynamic_settings()
             self.start_game()
             # Указатель мыши скрывается.
             pygame.mouse.set_visible(False)
@@ -92,9 +94,10 @@ class AlienInvasion:
 
     def _fire_bullet(self):
         """Создание нового снаряда и включение его в группу bullets."""
-        if len(self.bullets) < self.settings.bullet_allowed:
-            new_bullet = Bullet(self)
-            self.bullets.add(new_bullet)
+        if self.status.game_active:
+            if len(self.bullets) < self.settings.bullet_allowed:
+                new_bullet = Bullet(self)
+                self.bullets.add(new_bullet)
 
     def _create_alien(self, alien_number, row_number):
         """Создание пришельца и размещение его в ряду"""
@@ -148,6 +151,7 @@ class AlienInvasion:
             # Уничтожение существующих снарядов и создание нового флота.
             self.bullets.empty()
             self._create_fleet()
+            self.settings.increase_speed()
 
     def _check_aliens_bottom(self):
         """Проверяет, добрались ли пришельцы до нижнего края экрана."""
