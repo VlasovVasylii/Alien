@@ -17,7 +17,7 @@ class ChooseLevel:
             )
                         )
         ]
-        self.title = ChooseButton(ai_game, "Выберите уровень сложности:", (
+        self.title = ChooseButton(ai_game, "Choose the difficulty level:", (
                 ai_game.settings.screen_width * 0.43,
                 ai_game.settings.screen_height * 0.3
             )

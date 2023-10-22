@@ -90,7 +90,7 @@ class CheckEvents:
         self.ai_game.bullets.empty()
 
         # Создание нового флота и размещение корабля в центре.
-        self.ai_game.create_fleet()
+        self.ai_game.aliens_fleet.create_fleet()
         self.ai_game.ship.center_ship()
 
         # Указатель мыши скрывается.

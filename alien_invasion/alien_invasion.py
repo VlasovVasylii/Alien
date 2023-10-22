@@ -1,6 +1,6 @@
 import pygame
 from settings import Settings
-from models.alien import Alien
+from aliens_fleet import AliensFleet
 from models.ship import Ship
 from models.button import PlayButton
 from time import sleep
@@ -35,7 +35,9 @@ class AlienInvasion:
         self.bullets = pygame.sprite.Group()
         self.aliens = pygame.sprite.Group()
 
-        self.create_fleet()
+        # Инициализация объекта флота и его создание.
+        self.aliens_fleet = AliensFleet(self)
+        self.aliens_fleet.create_fleet()
 
         # Создание кнопки Play.
         self.play_button = PlayButton(self, "Play")
@@ -43,59 +45,10 @@ class AlienInvasion:
         # Создание выбора настроек сложности.
         self.choose_levels = ChooseLevel(self)
 
-    def _create_alien(self, alien_number, row_number):
-        """Создание пришельца и размещение его в ряду"""
-        alien = Alien(self)
-        alien_width, alien_height = alien.rect.size
-        alien.x = alien_width + 2 * alien_width * alien_number
-        alien.rect.x = alien.x
-        alien.rect.y = alien.rect.height + 2 * alien_height * row_number + alien_height
-        self.aliens.add(alien)
-
-    def create_fleet(self):
-        """Создание флота вторжения."""
-        # Создание пришельца и вычисление количества пришельцев в ряду
-        # Интервал между соседними пришельцами равен ширине пришельца.
-        alien = Alien(self)
-        alien_width, alien_height = alien.rect.size
-        available_space_x = self.settings.screen_width - (2 * alien_width)
-        number_aliens_x = available_space_x // (2 * alien_width)
-
-        """Определяет количество рядов, помещающихся на экране."""
-        ship_height = self.ship.rect.height
-        available_space_y = (
-            self.settings.screen_height - (3 * alien_height) - ship_height
-        )
-        number_rows = available_space_y // (3 * alien_height)
-
-        # Создание флота вторжения.
-        for row_number in range(number_rows):
-            for alien_number in range(number_aliens_x):
-                self._create_alien(alien_number, row_number)
-
-    def _check_fleet_edges(self):
-        """Реагирует на достижение пришельцем края экрана или его коллизии с
-        элементами scoreboard."""
-        for alien in self.aliens.sprites():
-            if alien.check_edges():
-                self.change_fleet_direction()
-                return
-        for sprite in self.aliens.sprites():
-            if self.score_board.level_rect.colliderect(sprite.rect)\
-                    or self.score_board.score_rect.colliderect(sprite.rect):
-                self.change_fleet_direction()
-                return
-
-    def change_fleet_direction(self):
-        """Опускает весь флот и меняет направление флота."""
-        for alien in self.aliens.sprites():
-            alien.rect.y += self.settings.fleet_drop_speed
-        self.settings.fleet_direction *= -1
-
     def start_new_level(self):
         """Уничтожение существующих снарядов и создание нового флота."""
         self.bullets.empty()
-        self.create_fleet()
+        self.aliens_fleet.create_fleet()
         self.settings.increase_speed()
 
         # Увеличение уровня.
@@ -137,7 +90,7 @@ class AlienInvasion:
             self.bullets.empty()
 
             # Создание нового флота и размещение корабля в центре.
-            self.create_fleet()
+            self.aliens_fleet.create_fleet()
             self.ship.center_ship()
 
             # Пауза.
@@ -163,7 +116,7 @@ class AlienInvasion:
         Проверяет, достиг ли флот края экрана,
         с последующим обновлением позиций всех пришельцев во флоте.
         """
-        self._check_fleet_edges()
+        self.aliens_fleet.check_fleet_edges()
         self.aliens.update()
 
         # Проверка коллизий "пришелец — корабль".
